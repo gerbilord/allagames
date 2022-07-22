@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <!-- Required meta tags -->
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+        <!-- Bootstrap CSS -->
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+        <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='main.css') }}">
+
+        <title>All-A Games</title>
+    </head>
+    <body>
+        <div class="sidebar-container">
+            <div class="sidebar-logo">
+                All-A Games
+            </div>
+            <ul class="sidebar-navigation">
+                <li class="header"><b>Navigation</b></li>
+                <li>
+                    <a href="home">
+                        <i class="fa fa-home" aria-hidden="true"></i> Homepage
+
+                    </a>
+                </li>
+                <li>
+                    <a href="about">
+                        <i class="fa fa-info-circle" aria-hidden="true"></i> Information
+                    </a>
+                </li>
+                <li class="header"><b>Games</b> </li>
+                <li class="header">Shrink Chess </li>
+                <li>
+                    <a href="#" onclick="updateLobbies()"  data-toggle="modal" data-target="#shrinkChessLobbies">
+                        Join Lobby
+                    </a>
+                </li>
+                <li>
+                    <a href="#"  data-toggle="modal" data-target="#shrinkChessCreateLobby">
+                        Create Lobby
+                    </a>
+                </li>
+            </ul>
+        </div>
+
+        <div class="content-container">
+
+            <div class="container-fluid">
+
+                <!-- Main component for a primary marketing message or call to action -->
+                <div class="jumbotron" id="mainContent">
+                    {% block content%}{% endblock %}
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Modals -->
+        <div class="modal fade" id="shrinkChessLobbies" tabindex="-1" role="dialog" aria-labelledby="Shrink Chess Lobbies" aria-hidden="true">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="ShrinkChessLobbiesLabel">Shrink Chess Lobbies</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <ul id="lobbyList" style="list-style-type:none;"></ul>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- Make into a lobby template later -->
+        <div class="modal fade" id="shrinkChessCreateLobby" tabindex="-1" role="dialog" aria-labelledby="Shrink Chess Create Lobby" aria-hidden="true">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="ShrinkChessLobbiesLabel">Shrink Chess Create Lobby</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                            Lobby Name: <input type="text" name="lobbyName" id="lobbyName">
+                            <input type="hidden" id="lobbyType" name="lobbyType" value="shrinkChess">
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                        <button type="button" class="btn btn-primary" onclick="sendCreateLobby()">Create Lobby</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+
+        <!-- Optional JavaScript -->
+        <script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/2.2.0/socket.io.js" integrity="sha256-yr4fRk/GU1ehYJPAs8P4JlTgu0Hdsp4ZKrx8bDEDC3I=" crossorigin="anonymous"></script>
+        <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+        <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+        <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+
+
+        <script>
+
+         function sendCreateLobby()
+         {
+             var lobbyRequest = new XMLHttpRequest();
+             var url = "/createLobby";
+             lobbyRequest.open("POST", url, false);
+
+             // Header
+             lobbyRequest.setRequestHeader('Content-type', 'application/json');
+
+             var lName = document.getElementById("lobbyName").value;
+             var lType = document.getElementById("lobbyType").value;
+             params = JSON.stringify({"lobbyName": lName, "lobbyType": lType});
+
+             lobbyRequest.send(params);
+
+             var response = JSON.parse(lobbyRequest.responseText);
+
+             document.cookie = "shrinkChessGameId="+response.gameId+";"+"path=/shrinkChess";
+             window.location.href = "/shrinkChess"; // Make this POST request Return lobby id
+         }
+
+
+         function joinLobby(gameId)
+         {
+             return function()
+             {
+                 document.cookie = "shrinkChessGameId="+gameId+";"+"path=/shrinkChess";
+                 window.location.href = "/shrinkChess"; // consider replace
+             }
+
+         }
+
+         function updateLobbies()
+         {
+             // Getting Data
+             var lobbyRequest = new XMLHttpRequest();
+             var url = "/getLobbies";
+             lobbyRequest.open("GET", url, false);
+             lobbyRequest.setRequestHeader('Content-type', 'application/json');
+             lobbyRequest.send();
+
+             var lobbies = JSON.parse(lobbyRequest.responseText);
+
+             // Printing Data
+             var lobbyList = document.getElementById("lobbyList");
+             lobbyList.innerHTML = ""
+
+             if(lobbies.length == 0){lobbyList.innerHTML = "No lobbies. Try creating one!"}
+             else{
+
+                 for (var i = lobbies.length - 1; i > -1; i--)
+                 {
+                     // Get info
+                     var curLobby = lobbies[i];
+                     var gameId = curLobby.gameId;
+                     var name = curLobby.name;
+
+                     // Create join button
+                     var button = document.createElement('button');
+                     button.innerHTML = 'Join'
+                     button.onclick = joinLobby(gameId);
+
+                     // Create list
+                     var li = document.createElement('li');
+                     li.innerHTML = "Name: " + name +"     Game Id:" + gameId +" ";
+
+                     // Add them!
+                     li.appendChild(button);
+                     lobbyList.appendChild(li);
+                 }
+             }
+         }
+
+        </script>
+    </body>
+</html>

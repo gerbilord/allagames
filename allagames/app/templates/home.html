@@ -1,0 +1,10 @@
+{% extends "layout.html" %}
+{% block content %}
+        <h1>All-A Games </h1>
+        <br>
+        {% for update in updates %}
+        <h2>{{update.title}}</h2>
+        <p>Posted on: {{update.date_posted}}</p>
+        <p>{{update.content}}</p>
+        {% endfor %}
+{% endblock content %}

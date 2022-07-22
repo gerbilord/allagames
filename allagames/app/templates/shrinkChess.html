@@ -1,0 +1,273 @@
+{% extends "layout.html" %}
+{% block content %}
+<style type="text/css">
+ .chessboard {
+     width: 640px;
+     height: 640px;
+     margin: 20px;
+     border: 25px solid #333;
+ }
+ .black {
+     float: left;
+     width: 50px;
+     height: 50px;
+     background-color: #999;
+     font-size:37px;
+     user-select: none;
+     text-align:center;
+     display: table-cell;
+     vertical-align:middle;
+ }
+ .white {
+     float: left;
+     width: 50px;
+     height: 50px;
+     background-color: #fff;
+     font-size:37px;
+     user-select: none;
+     text-align:center;
+     display: table-cell;
+     vertical-align:middle;
+ }
+ .yourTurn{
+     border-radius: 50%;
+     behavior: url(PIE.htc); /* remove if you don't care about IE8 */
+     width: 50px;
+     height: 50px;
+     background-color: #0f6;
+ }
+ .notYourTurn{
+     border-radius: 50%;
+     behavior: url(PIE.htc); /* remove if you don't care about IE8 */
+     width: 50px;
+     height: 50px;
+     background-color: #f64;
+ }
+ .selected {
+     border-style: solid;
+     border-color: red;
+ }
+</style>
+
+
+<h1> Shrink Chess </h1>
+<p id="gameId"></p> <div id="turnSignal" class="notYourTurn"></div>
+
+
+
+<script src="//code.jquery.com/jquery-1.12.4.min.js" integrity="sha256-ZosEbRLbNQzLpnKIkEdrPv7lOy9C27hHQ+Xp8a4MxAQ=" crossorigin="anonymous"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/2.2.0/socket.io.js" integrity="sha256-yr4fRk/GU1ehYJPAs8P4JlTgu0Hdsp4ZKrx8bDEDC3I=" crossorigin="anonymous"></script>
+<script>
+
+ // BOARD RENDER
+ var lastBoard = [];
+ var pieceCode = {};
+ pieceCode['whiterook'] = '&#9814;';
+ pieceCode['whiteknight'] = '&#9816;';
+ pieceCode['whitebishop'] = '&#9815;';
+ pieceCode['whitequeen'] = '&#9813;';
+ pieceCode['whiteking'] = '&#9812;';
+ pieceCode['whitepawn'] = '&#9817;';
+ pieceCode['blackrook'] = '&#9820;';
+ pieceCode['blackknight'] = '&#9822;';
+ pieceCode['blackbishop'] = '&#9821;';
+ pieceCode['blackqueen'] = '&#9819;';
+ pieceCode['blackking'] = '&#9818;';
+ pieceCode['blackpawn'] = '&#9823;';
+ pieceCode['noneempty'] = '';
+
+ var lastMove = 0;
+ var playerColor = 'spectator';
+ var playerNumber = '0';
+
+ function clickHandler(tileId, pieceColor)
+ {
+     return function()
+     {
+         if(pieceColor == playerColor)
+         {
+             if(lastMove != 0)
+             {
+                 oldMove = document.getElementById(lastMove);
+                 oldMove.classList.remove("selected");
+             }
+             lastMove = tileId;
+             newMove = document.getElementById(lastMove);
+             newMove.classList.add("selected");
+         }
+         else if(lastMove != 0)
+         {
+             oldMove = document.getElementById(lastMove);
+             oldMove.classList.remove("selected");
+             sendMove(lastMove, tileId);
+             lastMove = 0;
+         }
+     }
+ }
+
+ var letterIndex = ['A','B','C','D','E','F','G','H'];
+
+ function spawnBoard(newBoard)
+ {
+     var board = document.createElement("board");
+     board.setAttribute('id', 'board');
+
+     var height = newBoard[0].length;
+     var width = newBoard.length
+
+     if(playerColor != 'black')
+     {
+         for (var i = 0; i < height; i++) { // y
+             var tr = document.createElement('tr');
+             for (var j = 0; j < width; j++) { // x
+                 var td = document.createElement('td');
+                 if (i%2 == j%2) {
+                     td.className = "white";
+                 } else {
+                     td.className = "black";
+                 }
+
+                 var numIndex = height-i;
+                 var y = height-i-1
+                 var x = j
+                 var tileId = letterIndex[j]+numIndex
+                 td.setAttribute("id", tileId);
+                 td.innerHTML = pieceCode[newBoard[x][y][0]+newBoard[x][y][1]];
+                 td.onclick = clickHandler(tileId, newBoard[x][y][0]);
+                 tr.appendChild(td);
+             }
+             board.appendChild(tr);
+         }
+         document.getElementById("mainContent").appendChild(board)
+     }
+     else
+     {
+         for (var i = height - 1; i > -1; i--) { // y
+             var tr = document.createElement('tr');
+             for (var j = width-1; j > -1; j--) { // x
+                 var td = document.createElement('td');
+                 if (i%2 == j%2) {
+                     td.className = "white";
+                 } else {
+                     td.className = "black";
+                 }
+
+                 var numIndex = height-i;
+                 var y = height-i-1
+                 var x = j
+                 var tileId = letterIndex[j]+numIndex
+                 td.setAttribute("id", tileId);
+                 td.innerHTML = pieceCode[newBoard[x][y][0]+newBoard[x][y][1]];
+                 td.onclick = clickHandler(tileId, newBoard[x][y][0]);
+                 tr.appendChild(td);
+             }
+             board.appendChild(tr);
+         }
+         document.getElementById("mainContent").appendChild(board)
+     }
+ }
+
+ function updateBoard(newBoard)
+ {
+     deleteBoard();
+     spawnBoard(newBoard);
+ }
+
+ function deleteBoard()
+ {
+     oldBoard = document.getElementById("board");
+     if(oldBoard != null)
+     {
+         oldBoard.parentNode.removeChild(oldBoard);
+     }
+ }
+
+ function updateTurnSignal(turn)
+ {
+     signal = document.getElementById("turnSignal");
+     if(turn == playerNumber)
+     {
+         signal.classList.remove("notYourTurn");
+         signal.classList.add("yourTurn");
+     }
+     else
+     {
+         signal.classList.remove("yourTurn");
+         signal.classList.add("notYourTurn");
+     }
+ }
+
+ // CONNECTION CODE
+ var gameId = getCookie("shrinkChessGameId");
+ var displayText = "Lobby Id: " + gameId;
+
+ document.getElementById("gameId").innerHTML = displayText
+
+ var protocol = window.location.protocol;
+ var socket = io.connect(protocol + '//' + document.domain + ':' + location.port + '/shrinkChess');
+
+ socket.on('connect', function(msg){
+     console.log('Connected to server.');
+     joinGame();
+ });
+
+ socket.on('message', function(msg){
+     console.log(msg);
+ });
+
+ socket.on('playerConnected', function(msg){
+     console.log('A player Connected! ;D');
+ });
+
+ socket.on('playerAssign', function(msg){
+     playerNumber = msg;
+     if(msg == 1){playerColor = 'white';}
+     else if(msg == 2){playerColor = 'black';}
+     console.log('Assigned color:' + playerColor);
+
+ });
+
+ socket.on('turnUpdate', function(msg){
+     currentTurn = msg;
+     console.log("currentTurn: " + currentTurn);
+     console.log("ThisPlayer' number: " + playerNumber);
+     updateTurnSignal(msg);
+ });
+
+ socket.on('gameUpdateEvent', function(msg){
+     console.log('Recieved update from server:');
+     updateBoard(msg);
+ });
+
+
+ function joinGame()
+ {
+     console.log("Attempting to join game");
+     socket.emit('join', {gameId: gameId});
+ }
+
+ function sendMove(fromTile, toTile)
+ {
+     socket.emit('gameMove', {fromTile:fromTile, toTile:toTile, room:gameId});
+ }
+
+
+ function getCookie(cname) {
+     var name = cname + "=";
+     var decodedCookie = decodeURIComponent(document.cookie);
+     var ca = decodedCookie.split(';');
+     for(var i = 0; i < ca.length; i++) {
+         var c = ca[i];
+         while (c.charAt(0) == ' ') {
+             c = c.substring(1);
+         }
+         if (c.indexOf(name) == 0) {
+             return c.substring(name.length, c.length);
+         }
+     }
+     return "";
+ }
+
+</script>
+
+{% endblock content %}

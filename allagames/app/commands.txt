@@ -1,0 +1,9 @@
+gunicorn --worker-class eventlet -w 1 app:app
+virtualenv -p python3 venv
+source ./venv/bin/activate
+
+/snap/bin/heroku create allagames
+heroku git:remote -a allagames
+git push heroku master
+
+/snap/bin/heroku logs --tail
